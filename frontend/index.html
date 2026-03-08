@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nodan - Internet Scanner</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Orbitron:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        hacker: {
+                            dark: '#0a0a0a',
+                            darker: '#050505',
+                            green: '#00ff41',
+                            green_dim: '#00cc33',
+                            green_glow: '#00ff4133',
+                            cyan: '#00ffff',
+                            purple: '#bf00ff',
+                            red: '#ff0040'
+                        }
+                    },
+                    fontFamily: {
+                        mono: ['JetBrains Mono', 'monospace'],
+                        display: ['Orbitron', 'sans-serif']
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        * {
+            font-family: 'JetBrains Mono', monospace;
+        }
+        
+        body {
+            background: linear-gradient(135deg, #050505 0%, #0a0a0a 50%, #0d0d0d 100%);
+            min-height: 100vh;
+        }
+        
+        .scan-line {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 2px;
+            background: linear-gradient(90deg, transparent, #00ff41, transparent);
+            animation: scanLine 4s linear infinite;
+            pointer-events: none;
+            z-index: 9999;
+            opacity: 0.3;
+        }
+        
+        @keyframes scanLine {
+            0% { top: 0; }
+            100% { top: 100%; }
+        }
+        
+        .glow-text {
+            text-shadow: 0 0 10px #00ff41, 0 0 20px #00ff4133, 0 0 40px #00ff4111;
+        }
+        
+        .glow-box {
+            box-shadow: 0 0 10px #00ff4133, inset 0 0 20px #00ff4108;
+        }
+        
+        .glow-box-cyan {
+            box-shadow: 0 0 10px #00ffff33, inset 0 0 20px #00ffff08;
+        }
+        
+        .border-glow {
+            border: 1px solid #00ff4133;
+        }
+        
+        .border-glow-cyan {
+            border: 1px solid #00ffff33;
+        }
+        
+        .pulse-dot {
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        .matrix-bg {
+            background-image: 
+                linear-gradient(rgba(0, 255, 65, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 255, 65, 0.03) 1px, transparent 1px);
+            background-size: 50px 50px;
+        }
+        
+        .search-input {
+            background: rgba(0, 0, 0, 0.5);
+            border: 1px solid #00ff4133;
+        }
+        
+        .search-input:focus {
+            outline: none;
+            border-color: #00ff41;
+            box-shadow: 0 0 15px #00ff4133;
+        }
+        
+        .result-card {
+            background: rgba(10, 10, 10, 0.8);
+            border: 1px solid #1a1a1a;
+            transition: all 0.2s ease;
+        }
+        
+        .result-card:hover {
+            border-color: #00ff4144;
+            box-shadow: 0 0 20px #00ff4111;
+            transform: translateX(5px);
+        }
+        
+        .service-badge {
+            font-size: 0.65rem;
+            padding: 2px 6px;
+            border-radius: 2px;
+            text-transform: uppercase;
+        }
+        
+        .service-ssh { background: #00ff4122; color: #00ff41; }
+        .service-http { background: #00ffff22; color: #00ffff; }
+        .service-https { background: #bf00ff22; color: #bf00ff; }
+        .service-ftp { background: #ff004022; color: #ff0040; }
+        .service-default { background: #ffffff11; color: #888; }
+        
+        #map {
+            background: #050505;
+            filter: grayscale(100%) brightness(0.8);
+        }
+        
+        .leaflet-tile {
+            filter: invert(1) hue-rotate(90deg) brightness(0.8) saturate(0.5);
+        }
+        
+        .stat-number {
+            font-family: 'Orbitron', sans-serif;
+            font-weight: 700;
+        }
+        
+        .cyber-button {
+            background: linear-gradient(180deg, #00cc33 0%, #009925 100%);
+            border: 1px solid #00ff41;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .cyber-button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+            transition: left 0.5s;
+        }
+        
+        .cyber-button:hover::before {
+            left: 100%;
+        }
+        
+        .cyber-button:hover {
+            box-shadow: 0 0 20px #00ff4155;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #0a0a0a;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #00ff4133;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #00ff4155;
+        }
+        
+        .loading-spinner {
+            border: 2px solid #00ff4111;
+            border-top: 2px solid #00ff41;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        .glitch {
+            position: relative;
+        }
+        
+        .glitch::before,
+        .glitch::after {
+            content: attr(data-text);
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .glitch::before {
+            animation: glitch1 2s infinite linear alternate-reverse;
+            color: #00ffff;
+            z-index: -1;
+        }
+        
+        .glitch::after {
+            animation: glitch2 3s infinite linear alternate-reverse;
+            color: #ff0040;
+            z-index: -2;
+        }
+        
+        @keyframes glitch1 {
+            0%, 90%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+            92% { clip-path: inset(20% 0 80% 0); transform: translate(-5px); }
+            94% { clip-path: inset(60% 0 10% 0); transform: translate(5px); }
+            96% { clip-path: inset(10% 0 50% 0); transform: translate(-3px); }
+        }
+        
+        @keyframes glitch2 {
+            0%, 90%, 100% { clip-path: inset(0 0 0 0); transform: translate(0); }
+            91% { clip-path: inset(30% 0 50% 0); transform: translate(3px); }
+            93% { clip-path: inset(80% 0 5% 0); transform: translate(-4px); }
+            95% { clip-path: inset(15% 0 60% 0); transform: translate(4px); }
+        }
+    </style>
+</head>
+<body class="text-gray-300 matrix-bg">
+    <div class="scan-line"></div>
+    
+    <!-- Header -->
+    <header class="border-b border-hacker-green/20 bg-hacker-darker/90 backdrop-blur-sm sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <h1 class="text-3xl font-display font-black text-hacker-green glow-text tracking-wider" data-text="NODAN">
+                        NODAN
+                    </h1>
+                    <span class="text-xs text-hacker-green/50">v1.0.0</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="w-2 h-2 bg-hacker-green rounded-full pulse-dot"></span>
+                        <span class="text-hacker-green/70">SYSTEM ONLINE</span>
+                    </div>
+                    <a href="/docs" target="_blank" class="text-xs text-hacker-cyan/70 hover:text-hacker-cyan transition">API</a>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-6">
+        <!-- Search Section -->
+        <section class="mb-8">
+            <div class="bg-hacker-dark/80 border-glow rounded-lg p-6 glow-box">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1 relative">
+                        <div class="absolute left-4 top-1/2 -translate-y-1/2 text-hacker-green/50">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                            </svg>
+                        </div>
+                        <input 
+                            type="text" 
+                            id="searchInput" 
+                            placeholder="port:22 country:US service:ssh ip:1.2.3.4..." 
+                            class="w-full search-input rounded-lg py-3 pl-12 pr-4 text-hacker-green placeholder-hacker-green/30"
+                            autocomplete="off"
+                        >
+                    </div>
+                    <button 
+                        id="searchBtn"
+                        class="cyber-button text-hacker-dark font-bold py-3 px-8 rounded-lg transition-all"
+                    >
+                        SCAN
+                    </button>
+                </div>
+                
+                <!-- Quick Filters -->
+                <div class="mt-4 flex flex-wrap gap-2">
+                    <span class="text-xs text-hacker-green/50 py-1">QUICK:</span>
+                    <button class="quick-filter text-xs px-3 py-1 rounded border border-hacker-green/30 text-hacker-green/70 hover:border-hacker-green hover:text-hacker-green transition" data-filter="port:22">SSH</button>
+                    <button class="quick-filter text-xs px-3 py-1 rounded border border-hacker-cyan/30 text-hacker-cyan/70 hover:border-hacker-cyan hover:text-hacker-cyan transition" data-filter="port:80">HTTP</button>
+                    <button class="quick-filter text-xs px-3 py-1 rounded border border-hacker-purple/30 text-hacker-purple/70 hover:border-hacker-purple hover:text-hacker-purple transition" data-filter="port:443">HTTPS</button>
+                    <button class="quick-filter text-xs px-3 py-1 rounded border border-hacker-red/30 text-hacker-red/70 hover:border-hacker-red hover:text-hacker-red transition" data-filter="port:21">FTP</button>
+                    <button class="quick-filter text-xs px-3 py-1 rounded border border-white/20 text-white/70 hover:border-white hover:text-white transition" data-filter="port:3389">RDP</button>
+                    <button class="quick-filter text-xs px-3 py-1 rounded border border-white/20 text-white/70 hover:border-white hover:text-white transition" data-filter="service:nginx">NGINX</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="mb-8">
+            <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+                <div class="bg-hacker-dark/60 border-glow rounded-lg p-4 glow-box text-center">
+                    <div class="stat-number text-2xl md:text-3xl text-hacker-green" id="statHosts">0</div>
+                    <div class="text-xs text-hacker-green/50 mt-1">HOSTS</div>
+                </div>
+                <div class="bg-hacker-dark/60 border-glow rounded-lg p-4 glow-box text-center">
+                    <div class="stat-number text-2xl md:text-3xl text-hacker-cyan" id="statRecords">0</div>
+                    <div class="text-xs text-hacker-cyan/50 mt-1">RECORDS</div>
+                </div>
+                <div class="bg-hacker-dark/60 border-glow-cyan rounded-lg p-4 glow-box-cyan text-center">
+                    <div class="stat-number text-2xl md:text-3xl text-hacker-purple" id="statServices">0</div>
+                    <div class="text-xs text-hacker-purple/50 mt-1">SERVICES</div>
+                </div>
+                <div class="bg-hacker-dark/60 border-glow rounded-lg p-4 glow-box text-center">
+                    <div class="stat-number text-2xl md:text-3xl text-hacker-red" id="statCountries">0</div>
+                    <div class="text-xs text-hacker-red/50 mt-1">COUNTies</div>
+                </div>
+                <div class="bg-hacker-dark/60 border-glow rounded-lg p-4 glow-box text-center">
+                    <div class="stat-number text-2xl md:text-3xl text-hacker-green" id="statPorts">0</div>
+                    <div class="text-xs text-hacker-green/50 mt-1">PORTS</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Content -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Results Section -->
+            <section>
+                <div class="bg-hacker-dark/80 border-glow rounded-lg overflow-hidden glow-box">
+                    <div class="border-b border-hacker-green/20 px-4 py-3 flex items-center justify-between">
+                        <h2 class="text-hacker-green font-display font-bold tracking-wider">RESULTS</h2>
+                        <span class="text-xs text-hacker-green/50" id="resultCount">0 devices found</span>
+                    </div>
+                    
+                    <!-- Loading State -->
+                    <div id="loadingState" class="hidden p-8 text-center">
+                        <div class="loading-spinner mx-auto mb-4"></div>
+                        <p class="text-hacker-green/70 text-sm">SCANNING...</p>
+                    </div>
+                    
+                    <!-- Results List -->
+                    <div id="resultsList" class="max-h-[600px] overflow-y-auto">
+                        <div class="p-8 text-center text-hacker-green/30">
+                            <svg class="w-16 h-16 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/>
+                            </svg>
+                            <p class="text-sm">Enter a query to scan the network</p>
+                        </div>
+                    </div>
+                    
+                    <!-- Pagination -->
+                    <div id="pagination" class="hidden border-t border-hacker-green/20 px-4 py-3 flex items-center justify-between">
+                        <button id="prevBtn" class="text-xs text-hacker-green/70 hover:text-hacker-green transition disabled:opacity-30" disabled>◀ PREV</button>
+                        <span class="text-xs text-hacker-green/50" id="pageInfo">Page 1</span>
+                        <button id="nextBtn" class="text-xs text-hacker-green/70 hover:text-hacker-green transition disabled:opacity-30" disabled>NEXT ▶</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Map Section -->
+            <section>
+                <div class="bg-hacker-dark/80 border-glow rounded-lg overflow-hidden glow-box">
+                    <div class="border-b border-hacker-cyan/20 px-4 py-3 flex items-center justify-between">
+                        <h2 class="text-hacker-cyan font-display font-bold tracking-wider">WORLD MAP</h2>
+                        <span class="text-xs text-hacker-cyan/50" id="mapCount">0 nodes</span>
+                    </div>
+                    <div id="map" class="h-[400px] w-full"></div>
+                </div>
+
+                <!-- Top Stats -->
+                <div class="mt-6 bg-hacker-dark/80 border-glow rounded-lg overflow-hidden glow-box">
+                    <div class="border-b border-hacker-purple/20 px-4 py-3">
+                        <h2 class="text-hacker-purple font-display font-bold tracking-wider">TOP SERVICES</h2>
+                    </div>
+                    <div id="topServices" class="p-4 space-y-2">
+                        <div class="text-hacker-purple/30 text-sm text-center py-4">No data</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <!-- Host Detail Modal -->
+    <div id="hostModal" class="fixed inset-0 bg-black/90 z-50 hidden items-center justify-center p-4">
+        <div class="bg-hacker-dark border-glow rounded-lg max-w-2xl w-full max-h-[80vh] overflow-hidden glow-box">
+            <div class="border-b border-hacker-green/20 px-6 py-4 flex items-center justify-between">
+                <div>
+                    <h3 class="text-xl font-display text-hacker-green glow-text" id="modalIp">192.168.1.1</h3>
+                    <p class="text-xs text-hacker-green/50" id="modalLocation">United States, New York</p>
+                </div>
+                <button id="closeModal" class="text-hacker-green/70 hover:text-hacker-green transition text-2xl">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto max-h-[60vh]">
+                <!-- Host Details -->
+                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                    <div class="bg-hacker-darker rounded p-3 border border-hacker-green/20">
+                        <div class="text-xs text-hacker-green/50">ASN</div>
+                        <div class="text-hacker-green" id="modalAsn">AS15169</div>
+                    </div>
+                    <div class="bg-hacker-darker rounded p-3 border border-hacker-cyan/20">
+                        <div class="text-xs text-hacker-cyan/50">ORG</div>
+                        <div class="text-hacker-cyan text-sm" id="modalOrg">Google LLC</div>
+                    </div>
+                    <div class="bg-hacker-darker rounded p-3 border border-hacker-purple/20">
+                        <div class="text-xs text-hacker-purple/50">OPEN PORTS</div>
+                        <div class="text-hacker-purple" id="modalPorts">0</div>
+                    </div>
+                    <div class="bg-hacker-darker rounded p-3 border border-hacker-red/20">
+                        <div class="text-xs text-hacker-red/50">LAST SCAN</div>
+                        <div class="text-hacker-red text-sm" id="modalLastScan">-</div>
+                    </div>
+                </div>
+                
+                <!-- Ports Table -->
+                <h4 class="text-hacker-green font-bold mb-3">OPEN PORTS</h4>
+                <div class="overflow-x-auto">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="border-b border-hacker-green/20">
+                                <th class="text-left py-2 text-hacker-green/70">PORT</th>
+                                <th class="text-left py-2 text-hacker-green/70">PROTOCOL</th>
+                                <th class="text-left py-2 text-hacker-green/70">SERVICE</th>
+                                <th class="text-left py-2 text-hacker-green/70">BANNER</th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalPortsTable">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="border-t border-hacker-green/10 mt-12 py-6">
+        <div class="max-w-7xl mx-auto px-4 text-center">
+            <p class="text-xs text-hacker-green/30">
+                NODAN — Internet Scanner // <span id="currentTime"></span>
+            </p>
+        </div>
+    </footer>
+
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

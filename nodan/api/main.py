@@ -7,6 +7,8 @@ from typing import Optional
 
 import yaml
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from nodan.database import ElasticsearchClient
@@ -180,19 +182,27 @@ def get_scanner() -> Scanner:
 
 from nodan.api.routes import search, host, stats
 
-app.include_router(search.router, prefix="/search", tags=["search"])
-app.include_router(host.router, prefix="/host", tags=["host"])
-app.include_router(stats.router, prefix="/stats", tags=["stats"])
+app.include_router(search.router, prefix="/api/search", tags=["search"])
+app.include_router(host.router, prefix="/api/host", tags=["host"])
+app.include_router(stats.router, prefix="/api/stats", tags=["stats"])
 
+
+frontend_dir = Path(__file__).parent.parent.parent / "frontend"
 
 @app.get("/")
 async def root():
-    """Root endpoint."""
+    """Root endpoint - serve frontend."""
+    frontend_path = frontend_dir / "index.html"
+    if frontend_path.exists():
+        return FileResponse(frontend_path)
     return {
         "name": "Nodan API",
         "version": config.api.get("version", "1.0.0"),
         "docs": "/docs"
     }
+
+
+app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
 
 @app.get("/health")
