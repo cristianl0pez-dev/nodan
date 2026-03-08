@@ -4,7 +4,7 @@ import ipaddress
 from typing import Optional
 from collections import defaultdict
 
-from fastapi import APIRouter, HTTPException, Path
+from fastapi import APIRouter, HTTPException, Path, Query
 
 from nodan.api.main import get_db, get_geo_enricher
 
