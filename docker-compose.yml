@@ -34,6 +34,7 @@ services:
     volumes:
       - ./config:/app/config:ro
       - ./data:/app/data:ro
+      - ./frontend:/app/frontend:ro
     depends_on:
       elasticsearch:
         condition: service_healthy
