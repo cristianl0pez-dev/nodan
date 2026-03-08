@@ -1,0 +1,28 @@
+# Core
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+pyyaml>=6.0.1
+
+# Database
+elasticsearch>=8.11.0
+
+# Scanner
+python-masscan>=0.0.5
+python-nmap>=0.7.1
+
+# Geolocation
+maxminddb>=2.4.0
+
+# CLI
+click>=8.1.7
+httpx>=0.25.0
+
+# Testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+pytest-cov>=4.1.0
+
+# Utilities
+python-dateutil>=2.8.2
