@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 
 from elasticsearch import Elasticsearch
 from elasticsearch.helpers import bulk
+from elasticsearch.dsl import Q
 
 
 INDEX_MAPPING = {
@@ -159,13 +160,15 @@ class ElasticsearchClient:
         Returns:
             Search results
         """
+        q = None
+
         if query:
-            body = query
+            q = query
         else:
-            body = {"bool": {"must": []}}
+            must_clauses = []
 
             if query_string:
-                body["bool"]["must"].append({
+                must_clauses.append({
                     "query_string": {
                         "query": query_string,
                         "fields": ["ip", "banner", "service", "country", "org", "asn"]
@@ -175,19 +178,21 @@ class ElasticsearchClient:
             if filters:
                 for field, value in filters.items():
                     if value:
-                        body["bool"]["must"].append({
+                        must_clauses.append({
                             "term": {field: value}
                         })
 
-            if not body["bool"]["must"]:
-                body = {"match_all": {}}
+            if must_clauses:
+                q = {"bool": {"must": must_clauses}}
+            else:
+                q = {"match_all": {}}
 
         if sort is None:
             sort = [{"timestamp": {"order": "desc"}}]
 
         result = self.client.search(
             index=self.index,
-            query=body,
+            query=q,
             from_=offset,
             size=limit,
             sort=sort
