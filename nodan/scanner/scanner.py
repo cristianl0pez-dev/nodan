@@ -53,7 +53,8 @@ class Scanner:
         self.masscan = MasscanScanner(
             rate=mc_config.get("rate", 10000),
             wait=mc_config.get("wait", 10),
-            retries=mc_config.get("retries", 3)
+            retries=mc_config.get("retries", 3),
+            binary_path=mc_config.get("binary_path", "/usr/bin/masscan")
         )
 
         self.nmap = NmapScanner(

@@ -3,6 +3,7 @@ scanner:
     rate: 10000
     wait: 10
     retries: 3
+    binary_path: /usr/bin/masscan
   nmap:
     timing: T4
     scripts: default,banner
