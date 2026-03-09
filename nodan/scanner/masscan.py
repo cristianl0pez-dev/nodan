@@ -63,6 +63,7 @@ class MasscanScanner:
 
         try:
             cmd = [
+                "sudo",
                 self.binary_path,
                 "-p", ports,
                 "--rate", str(self.rate),
