@@ -1,6 +1,7 @@
 """Elasticsearch client for Nodan."""
 
 import uuid
+import ipaddress
 from typing import Optional, Any
 from datetime import datetime, timezone
 
@@ -168,10 +169,17 @@ class ElasticsearchClient:
             must_clauses = []
 
             if query_string:
+                fields = ["banner", "service", "country", "org", "asn"]
+                try:
+                    ipaddress.ip_address(query_string)
+                    fields.insert(0, "ip")
+                except ValueError:
+                    pass
+                
                 must_clauses.append({
                     "query_string": {
                         "query": query_string,
-                        "fields": ["ip", "banner", "service", "country", "org", "asn"]
+                        "fields": fields
                     }
                 })
 
