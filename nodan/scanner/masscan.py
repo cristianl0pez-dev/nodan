@@ -125,12 +125,10 @@ class MasscanScanner:
 
     def get_available(self) -> bool:
         """Check if masscan is available."""
-        try:
-            result = subprocess.run(
-                [self.binary_path, "--version"],
-                capture_output=True,
-                timeout=5
-            )
-            return result.returncode == 0
-        except Exception:
-            return False
+        import shutil
+        if shutil.which(self.binary_path):
+            return True
+        if shutil.which("masscan"):
+            self.binary_path = "masscan"
+            return True
+        return False
