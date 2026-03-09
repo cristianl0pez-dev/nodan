@@ -11,7 +11,7 @@ scanner:
 database:
   elasticsearch:
     hosts:
-      - http://localhost:9200
+      - http://elasticsearch:9200
     index: nodan
     username: ""
     password: ""

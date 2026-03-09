@@ -6,7 +6,7 @@ from collections import defaultdict
 
 from fastapi import APIRouter, HTTPException, Path, Query
 
-from nodan.api.main import get_db, get_geo_enricher
+from nodan.api.deps import get_db, get_geo_enricher
 
 
 router = APIRouter()

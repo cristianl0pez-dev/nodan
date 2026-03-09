@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   elasticsearch:
     image: docker.elastic.co/elasticsearch/elasticsearch:8.11.0
@@ -31,6 +29,7 @@ services:
     environment:
       - NODAN_API_URL=http://localhost:8000
       - NODAN_CONFIG=/app/config/config.yaml
+      - NODAN_ES_HOSTS=["http://elasticsearch:9200"]
     volumes:
       - ./config:/app/config:ro
       - ./data:/app/data:ro

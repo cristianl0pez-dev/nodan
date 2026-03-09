@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Query
 
-from nodan.api.main import get_db
+from nodan.api.deps import get_db
 
 
 router = APIRouter()

@@ -15,6 +15,9 @@ from nodan.database import ElasticsearchClient
 from nodan.scanner import Scanner
 from nodan.processor import GeoEnricher, BannerNormalizer
 
+from nodan.api import state
+from nodan.api import deps
+
 
 class Config:
     """Application configuration."""
@@ -112,13 +115,19 @@ geo_enricher: Optional[GeoEnricher] = None
 scanner: Optional[Scanner] = None
 
 
+# Backwards compatibility - these are now in deps.py
+get_db = deps.get_db
+get_geo_enricher = deps.get_geo_enricher
+get_scanner = deps.get_scanner
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan handler."""
-    global db_client, geo_enricher, scanner
+    from nodan.api import state
 
     es_config = config.database.get("elasticsearch", {})
-    db_client = ElasticsearchClient(
+    state.db_client = ElasticsearchClient(
         hosts=es_config.get("hosts", ["http://localhost:9200"]),
         index=es_config.get("index", "nodan"),
         username=es_config.get("username") or None,
@@ -126,31 +135,31 @@ async def lifespan(app: FastAPI):
     )
 
     try:
-        db_client.create_index()
+        state.db_client.create_index()
     except Exception as e:
         print(f"Warning: Could not create index: {e}")
 
     geo_config = config.geolocation
     try:
-        geo_enricher = GeoEnricher(
+        state.geo_enricher = GeoEnricher(
             city_db_path=geo_config.get("city_db"),
             asn_db_path=geo_config.get("asn_db")
         )
     except Exception as e:
         print(f"Warning: Could not load GeoIP databases: {e}")
-        geo_enricher = None
+        state.geo_enricher = None
 
-    scanner = Scanner(
+    state.scanner = Scanner(
         masscan_config=config.scanner.get("masscan"),
         nmap_config=config.scanner.get("nmap")
     )
 
     yield
 
-    if db_client:
-        db_client.close()
-    if geo_enricher:
-        geo_enricher.close()
+    if state.db_client:
+        state.db_client.close()
+    if state.geo_enricher:
+        state.geo_enricher.close()
 
 
 app = FastAPI(
@@ -208,9 +217,13 @@ app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 @app.get("/health")
 async def health():
     """Health check endpoint."""
-    db = get_db()
+    from nodan.api import state
+    
+    if state.db_client is None:
+        return {"status": "unhealthy", "database": "not initialized", "geolocation": "unavailable"}
+    
     return {
-        "status": "healthy" if db.health_check() else "unhealthy",
-        "database": "connected" if db.health_check() else "disconnected",
-        "geolocation": "available" if geo_enricher and geo_enricher.is_available else "unavailable"
+        "status": "healthy" if state.db_client.health_check() else "unhealthy",
+        "database": "connected" if state.db_client.health_check() else "disconnected",
+        "geolocation": "available" if state.geo_enricher and state.geo_enricher.is_available else "unavailable"
     }

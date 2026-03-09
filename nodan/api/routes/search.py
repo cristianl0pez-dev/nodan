@@ -5,7 +5,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Query, HTTPException
 
-from nodan.api.main import get_db, get_geo_enricher
+from nodan.api.deps import get_db, get_geo_enricher
 
 
 router = APIRouter()

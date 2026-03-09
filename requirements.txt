@@ -6,7 +6,7 @@ pydantic-settings>=2.1.0
 pyyaml>=6.0.1
 
 # Database
-elasticsearch>=8.11.0
+elasticsearch>=8.11.0,<9.0.0
 
 # Scanner
 python-masscan>=0.0.5

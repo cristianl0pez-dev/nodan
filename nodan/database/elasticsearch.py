@@ -59,8 +59,6 @@ class ElasticsearchClient:
 
         kwargs: dict[str, Any] = {
             "hosts": hosts,
-            "use_ssl": use_ssl,
-            "verify_certs": verify_certs
         }
 
         if username and password:
@@ -84,7 +82,7 @@ class ElasticsearchClient:
             else:
                 return False
 
-        self.client.indices.create(index=self.index, body=INDEX_MAPPING)
+        self.client.indices.create(index=self.index, mappings=INDEX_MAPPING["mappings"], settings=INDEX_MAPPING["settings"])
         return True
 
     def index_result(self, result: dict) -> str:
@@ -187,11 +185,13 @@ class ElasticsearchClient:
         if sort is None:
             sort = [{"timestamp": {"order": "desc"}}]
 
-        body["from"] = offset
-        body["size"] = limit
-        body["sort"] = sort
-
-        result = self.client.search(index=self.index, body=body)
+        result = self.client.search(
+            index=self.index,
+            query=body,
+            from_=offset,
+            size=limit,
+            sort=sort
+        )
 
         return {
             "total": result["hits"]["total"]["value"],
@@ -209,13 +209,12 @@ class ElasticsearchClient:
         Returns:
             List of scan results
         """
-        body = {
-            "query": {"term": {"ip": ip}},
-            "sort": [{"timestamp": {"order": "desc"}}],
-            "size": 1000
-        }
-
-        result = self.client.search(index=self.index, body=body)
+        result = self.client.search(
+            index=self.index,
+            query={"term": {"ip": ip}},
+            sort=[{"timestamp": {"order": "desc"}}],
+            size=1000
+        )
 
         return [hit["_source"] for hit in result["hits"]["hits"]]
 
@@ -226,28 +225,17 @@ class ElasticsearchClient:
         Returns:
             Statistics dictionary
         """
-        body = {
-            "size": 0,
-            "aggs": {
-                "services": {
-                    "terms": {"field": "service", "size": 50}
-                },
-                "countries": {
-                    "terms": {"field": "country", "size": 50}
-                },
-                "ports": {
-                    "terms": {"field": "port", "size": 50}
-                },
-                "total_hosts": {
-                    "value_count": {"field": "ip"}
-                },
-                "total_records": {
-                    "value_count": {"field": "timestamp"}
-                }
+        result = self.client.search(
+            index=self.index,
+            size=0,
+            aggs={
+                "services": {"terms": {"field": "service", "size": 50}},
+                "countries": {"terms": {"field": "country", "size": 50}},
+                "ports": {"terms": {"field": "port", "size": 50}},
+                "total_hosts": {"value_count": {"field": "ip"}},
+                "total_records": {"value_count": {"field": "timestamp"}}
             }
-        }
-
-        result = self.client.search(index=self.index, body=body)
+        )
 
         aggs = result.get("aggregations", {})
 
